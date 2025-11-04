@@ -55,14 +55,14 @@ jobs:
           echo "::endgroup::"
           echo "::group::Compile v8 static library"
           mkdir -p out.gn/android.${{ matrix.platform }}.release/
-          cp ${{ github.workspace }}/args.android.${{ matrix.platform }}.clang.gn $GITHUB_WORKSPACE/v8/out.gn/android.${{ matrix.platform }}.release/args.gn
+          cp ${{ github.workspace }}/args.android.${{ matrix.platform }}.gn $GITHUB_WORKSPACE/v8/out.gn/android.${{ matrix.platform }}.release/args.gn
           gn gen out.gn/android.${{ matrix.platform }}.release
           ninja v8_monolith -C out.gn/android.${{ matrix.platform }}.release/
           gn args --list out.gn/android.${{ matrix.platform }}.release
           echo "::endgroup::"
           echo "::group::Compress artifacts"
           zip -j ../libv8_monolith-android-${{ matrix.platform }}.zip out.gn/android.${{ matrix.platform }}.release/obj/libv8_monolith.a
-          zip -r ../gen-android-${{ matrix.platform }}.zip out.gn/android.${{ matrix.platform }}.release/gen
+          zip -r ${{ github.workspace }}/v8/include.zip ${{ github.workspace }}/v8/include
           echo "::endgroup::"
       - name: Upload static library
         uses: actions/upload-release-asset@v1
@@ -71,16 +71,16 @@ jobs:
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: ${{ github.workspace }}/libv8_monolith-android-${{ matrix.platform }}.zip
-          asset_name: libv8_monolith-android-${{ matrix.platform }}.clang.zip
+          asset_name: libv8_monolith-android-${{ matrix.platform }}.zip
           asset_content_type: application/zip
-      - name: Upload generated source
+      - name: Upload include
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ github.workspace }}/gen-android-${{ matrix.platform }}.zip
-          asset_name: gen-android-${{ matrix.platform }}.clang.zip
+          asset_path: ${{ github.workspace }}/v8/include.zip
+          asset_name: include.zip
           asset_content_type: application/zip
 
   build-mac:
