@@ -5,7 +5,7 @@ on:
       - 'v*'
 
 env:
-  V8_VERSION: "14.1"
+  V8_VERSION: "14.3.92"
 
 defaults:
   run:
@@ -31,12 +31,14 @@ jobs:
 
   build-android:
     name: android
+    env:
+      JOB_NAME: android
     needs: create-release
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        platform: [arm64]
+        platform: [arm64, arm]
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -57,12 +59,14 @@ jobs:
           mkdir -p out.gn/android.${{ matrix.platform }}.release/
           cp ${{ github.workspace }}/args.android.${{ matrix.platform }}.gn $GITHUB_WORKSPACE/v8/out.gn/android.${{ matrix.platform }}.release/args.gn
           gn gen out.gn/android.${{ matrix.platform }}.release
-          ninja v8_monolith -C out.gn/android.${{ matrix.platform }}.release/ > /dev/null
+          ninja v8_monolith -C out.gn/android.${{ matrix.platform }}.release/
           gn args --list out.gn/android.${{ matrix.platform }}.release
           echo "::endgroup::"
           echo "::group::Compress artifacts"
-          zip -j ../libv8_monolith-android-${{ matrix.platform }}.zip out.gn/android.${{ matrix.platform }}.release/obj/libv8_monolith.a
-          zip -r ${{ github.workspace }}/v8/include.zip ${{ github.workspace }}/v8/include
+          zip -j ../libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}.zip out.gn/android.${{ matrix.platform }}.release/obj/libv8_monolith.a
+          if [ "${{ matrix.platform }}" = "arm64" ]; then
+            zip -r ../include-${{ env.JOB_NAME }}.zip include
+          fi
           echo "::endgroup::"
       - name: Upload static library
         uses: actions/upload-release-asset@v1
@@ -70,28 +74,31 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ github.workspace }}/libv8_monolith-android-${{ matrix.platform }}.zip
-          asset_name: libv8_monolith-android-${{ matrix.platform }}.zip
+          asset_path: ${{ github.workspace }}/libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}.zip
+          asset_name: libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}.zip
           asset_content_type: application/zip
       - name: Upload include
+        if: matrix.platform == 'arm64'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ github.workspace }}/v8/include.zip
-          asset_name: include.zip
+          asset_path: ${{ github.workspace }}/include-${{ env.JOB_NAME }}.zip
+          asset_name: include-${{ env.JOB_NAME }}.zip
           asset_content_type: application/zip
 
   build-mac:
     name: mac
     if: false
+    env:
+      JOB_NAME: mac
     needs: create-release
     runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
-        platform: [x64,arm64]
+        platform: [arm64]
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -110,12 +117,14 @@ jobs:
           mkdir -p out.gn/${{ matrix.platform }}.release/
           cp ${{ github.workspace }}/args.mac.${{ matrix.platform }}.gn ${{ github.workspace }}/v8/out.gn/${{ matrix.platform }}.release/args.gn
           gn gen out.gn/${{ matrix.platform }}.release
-          ninja v8_monolith -C out.gn/${{ matrix.platform }}.release/ > /dev/null
+          ninja v8_monolith -C out.gn/${{ matrix.platform }}.release/
           gn args --list out.gn/${{ matrix.platform }}.release
           echo "::endgroup::"
           echo "::group::Compress artifacts"
-          zip -j ../libv8_monolith-mac-${{ matrix.platform }}.zip out.gn/${{ matrix.platform }}.release/obj/libv8_monolith.a
-          zip -r ../gen-mac-${{ matrix.platform }}.zip out.gn/${{ matrix.platform }}.release/gen
+          zip -j ../libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}.zip out.gn/${{ matrix.platform }}.release/obj/libv8_monolith.a
+          if [ "${{ matrix.platform }}" = "arm64" ]; then
+            zip -r ../include-${{ env.JOB_NAME }}.zip include
+          fi
           echo "::endgroup::"
       - name: Upload static library
         uses: actions/upload-release-asset@v1
@@ -123,17 +132,17 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ github.workspace }}/libv8_monolith-mac-${{ matrix.platform }}.zip
-          asset_name: libv8_monolith-mac-${{ matrix.platform }}.zip
+          asset_path: ${{ github.workspace }}/libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}.zip
+          asset_name: libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}.zip
           asset_content_type: application/zip
-      - name: Upload generated source
+      - name: Upload include
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ github.workspace }}/gen-mac-${{ matrix.platform }}.zip
-          asset_name: gen-mac-${{ matrix.platform }}.zip
+          asset_path: ${{ github.workspace }}/v8/include-${{ env.JOB_NAME }}.zip
+          asset_name: include-${{ env.JOB_NAME }}.zip
           asset_content_type: application/zip
 
   build-win:
