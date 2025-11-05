@@ -11,7 +11,6 @@ const trace = function (...args) {
     console.log("builder: ", ...args);
 }
 
-trace(process.env);
 
 /**
  * 解析args.gn文件，返回一个对象
@@ -38,6 +37,10 @@ const v8Version = process.env.V8_VERSION;
 const platform = process.env.PLATFORM; // arm64|arm|x64
 const jobName = process.env.JOB_NAME;  // android|ios|mac|win
 const workspace = process.env.WORKSPACE;
+trace("v8Version=" + v8Version);
+trace("platform=" + platform);
+trace("jobName=" + jobName);
+trace("workspace=" + workspace);
 
 const v8SourcePath = path.join(workspace, "v8");
 
@@ -62,6 +65,8 @@ let onBeforeBuild = function () {
                         if (lines[i].includes("is_drumbrake_supported")) {
                             trace("Modify BUILD.gn:line-" + (i - 1));
                             lines[i - 1] = `# ${lines[i - 1]}`;
+                            lines[i] = `# ${lines[i]}`;
+                            lines[i + 1] = `# ${lines[i + 1]}`;
                             isModify = true;
                             break;
                         }

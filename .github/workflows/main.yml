@@ -61,14 +61,14 @@ jobs:
           cd ${{ github.workspace }}/v8
           git checkout $V8_VERSION
           gclient sync
-          ./build/install-build-deps.sh
+          ./build/install-build-deps.sh --no-prompt --no-chromeos-fonts || true
           echo "::endgroup::"
           echo "::group::Run pre-build script"
           node ${{ github.workspace }}/builder.js
           echo "::endgroup::"
           echo "::group::Compile v8 static library"
           mkdir -p out.gn/android.${{ matrix.platform }}.release/
-          cp ${{ github.workspace }}/args.android.${{ matrix.platform }}.gn $GITHUB_WORKSPACE/v8/out.gn/android.${{ matrix.platform }}.release/args.gn
+          cp ${{ github.workspace }}/args.android.${{ matrix.platform }}.gn ${{ github.workspace }}/v8/out.gn/android.${{ matrix.platform }}.release/args.gn
           gn gen out.gn/android.${{ matrix.platform }}.release
           ninja v8_monolith -C out.gn/android.${{ matrix.platform }}.release/
           gn args --list out.gn/android.${{ matrix.platform }}.release
@@ -279,7 +279,7 @@ jobs:
           WORKSPACE: ${{ github.workspace }}
         run: |
           echo "::group::Run pre-build script"
-          node ${{ github.workspace }}/builder.js
+          node builder.js
           echo "::endgroup::"
       - name: compile v8 static library
         shell: pwsh
@@ -327,11 +327,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Publish Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: actions/github-script@v7
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release-${{ github.ref }}
-        draft: false
-        prerelease: false
+        script: |
+          const tag = context.ref.replace('refs/tags/', '');
+          const releases = await github.rest.repos.listReleases({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+          });
+          const release = releases.data.find(r => r.tag_name === tag);
+          if (release) {
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.id,
+              draft: false
+            });
+            console.log('Release published successfully');
+          }
