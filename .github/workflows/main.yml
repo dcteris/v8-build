@@ -85,7 +85,22 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/depot_tools:${PATH}"
           gclient
           fetch v8
-          echo "target_os = ['android']" >> ${{ github.workspace }}/.gclient
+          cat > ${{ github.workspace }}/.gclient << 'EOF'
+          solutions = [
+            {
+              "name": "v8",
+              "url": "https://chromium.googlesource.com/v8/v8.git",
+              "managed": False,
+              "custom_deps": {
+                "v8/test/benchmarks/data": None,
+                "v8/test/mozilla/data": None,
+                "v8/test/test262/data": None,
+                "v8/test/wasm-js/data": None,
+              },
+            },
+          ]
+          target_os = ['android']
+          EOF
           cd ${{ github.workspace }}/v8
           git checkout $V8_VERSION
           gclient sync
@@ -159,7 +174,22 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/depot_tools:${PATH}"
           gclient
           fetch v8
-          echo "target_os = ['ios']" >> ${{ github.workspace }}/.gclient
+          cat > ${{ github.workspace }}/.gclient << 'EOF'
+          solutions = [
+            {
+              "name": "v8",
+              "url": "https://chromium.googlesource.com/v8/v8.git",
+              "managed": False,
+              "custom_deps": {
+                "v8/test/benchmarks/data": None,
+                "v8/test/mozilla/data": None,
+                "v8/test/test262/data": None,
+                "v8/test/wasm-js/data": None,
+              },
+            },
+          ]
+          target_os = ['ios']
+          EOF
           cd ${{ github.workspace }}/v8
           git checkout $V8_VERSION
           gclient sync
@@ -233,6 +263,21 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/depot_tools:${PATH}"
           gclient
           fetch v8
+          cat > ${{ github.workspace }}/.gclient << 'EOF'
+          solutions = [
+            {
+              "name": "v8",
+              "url": "https://chromium.googlesource.com/v8/v8.git",
+              "managed": False,
+              "custom_deps": {
+                "v8/test/benchmarks/data": None,
+                "v8/test/mozilla/data": None,
+                "v8/test/test262/data": None,
+                "v8/test/wasm-js/data": None,
+              },
+            },
+          ]
+          EOF
           cd ${{ github.workspace }}/v8
           git checkout $V8_VERSION
           gclient sync
@@ -306,6 +351,21 @@ jobs:
           git clone $DEPOT_TOOLS_REPO
           gclient
           fetch v8
+          cat > .gclient << 'EOF'
+          solutions = [
+            {
+              "name": "v8",
+              "url": "https://chromium.googlesource.com/v8/v8.git",
+              "managed": False,
+              "custom_deps": {
+                "v8/test/benchmarks/data": None,
+                "v8/test/mozilla/data": None,
+                "v8/test/test262/data": None,
+                "v8/test/wasm-js/data": None,
+              },
+            },
+          ]
+          EOF
           cd v8
           git checkout $V8_VERSION
           gclient sync
