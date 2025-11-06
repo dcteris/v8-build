@@ -11,8 +11,9 @@
 ## 支持平台
 
 - **Android** (arm64, arm, x64)
-- **iOS** (Universal库，包含arm64真机 + arm64模拟器)
-- **macOS** (arm64)
+- **Apple** (iOS + macOS 统一 XCFramework)
+  - iOS: arm64 真机、arm64 模拟器
+  - macOS: arm64 (Apple Silicon)
 - **Windows** (x64)
 
 ## 最新版本
@@ -34,10 +35,7 @@
 | Android  | `libv8_monolith-android-arm.zip` | arm | Android arm 静态库 |
 | Android  | `libv8_monolith-android-x64.zip` | x64 | Android x64 静态库（模拟器） |
 | Android  | `include-android.zip` | - | V8 头文件（来自 arm64 构建） |
-| iOS      | `libv8_monolith-ios-universal.zip` | arm64（真机+模拟器） | iOS Universal 静态库 |
-| iOS      | `include-ios.zip` | - | V8 头文件 |
-| macOS    | `libv8_monolith-mac-arm64.zip` | arm64 | macOS Apple Silicon 静态库 |
-| macOS    | `include-mac.zip` | - | V8 头文件 |
+| Apple    | `libv8_monolith-apple.zip` | iOS arm64（真机+模拟器）<br>macOS arm64 | 统一 XCFramework（已包含头文件），支持 iOS 和 macOS |
 | Windows  | `libv8_monolith-win-x64.zip` | x64 | Windows x64 静态库 |
 | Windows  | `include-win.zip` | - | V8 头文件 |
 
@@ -50,17 +48,44 @@
 - [args.android.arm.gn](args.android.arm.gn)
 - [args.android.x64.gn](args.android.x64.gn)
 
-### iOS
-- [args.ios.arm64.gn](args.ios.arm64.gn) - 真机设备配置
-- [args.ios.arm64.simulator.gn](args.ios.arm64.simulator.gn) - 模拟器配置
+### Apple (iOS + macOS)
+- [args.ios.arm64.gn](args.ios.arm64.gn) - iOS 真机设备配置
+- [args.ios.arm64.simulator.gn](args.ios.arm64.simulator.gn) - iOS 模拟器配置
+- [args.mac.arm64.gn](args.mac.arm64.gn) - macOS 配置
 
-**注意**：iOS构建会生成一个Universal（胖二进制）库，同时包含真机和模拟器架构，可以直接在Xcode项目中使用，无需切换库文件。
+**注意**：Apple 构建会生成一个统一的 XCFramework，同时支持 iOS（arm64 真机 + arm64 模拟器）和 macOS（arm64 Apple Silicon）。XCFramework 是 Apple 的现代解决方案，用于分发包含多个平台和架构变体的二进制框架，可以在 Xcode 项目中无缝使用。
 
-### macOS
-- [args.mac.arm64.gn](args.mac.arm64.gn)
+**XCFramework 结构**:
+```
+libv8_monolith.xcframework/
+├── ios-arm64/                          # iOS 真机
+│   └── libv8_monolith.framework/
+│       ├── Headers/                    # V8 头文件
+│       ├── libv8_monolith              # 静态库
+│       └── Info.plist
+├── ios-arm64-simulator/                # iOS 模拟器
+│   └── libv8_monolith.framework/
+│       ├── Headers/                    # V8 头文件
+│       ├── libv8_monolith              # 静态库
+│       └── Info.plist
+└── macos-arm64/                        # macOS Apple Silicon
+    └── libv8_monolith.framework/
+        ├── Headers/                    # V8 头文件
+        ├── libv8_monolith              # 静态库
+        └── Info.plist
+```
+
+**在 Xcode 中使用**:
+1. 将 `libv8_monolith.xcframework` 拖入 Xcode 项目
+2. 添加到 "Frameworks, Libraries, and Embedded Content"
+3. 导入头文件：`#include <libv8_monolith/v8.h>`
+4. Xcode 会自动选择正确的变体（iOS 真机/模拟器/macOS）
 
 ### Windows
 - [args.win.x64.gn](args.win.x64.gn)
+
+### XCFramework 配置
+- [Info.plist.template](Info.plist.template) - XCFramework Info.plist 模板文件（构建时自动替换版本号）
 
 ## 特性
 

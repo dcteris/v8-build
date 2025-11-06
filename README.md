@@ -11,8 +11,9 @@ English | [简体中文](README.ZH.md)
 ## Supported Platforms
 
 - **Android** (arm64, arm, x64)
-- **iOS** (Universal library for arm64 device + arm64 simulator)
-- **macOS** (arm64)
+- **Apple** (iOS + macOS XCFramework)
+  - iOS: arm64 device, arm64 simulator
+  - macOS: arm64 (Apple Silicon)
 - **Windows** (x64)
 
 ## Latest Release
@@ -34,10 +35,7 @@ Each release includes zip packages with:
 | Android  | `libv8_monolith-android-arm.zip` | arm | Static library for Android arm |
 | Android  | `libv8_monolith-android-x64.zip` | x64 | Static library for Android x64 (emulator) |
 | Android  | `include-android.zip` | - | V8 header files (from arm64 build) |
-| iOS      | `libv8_monolith-ios-universal.zip` | arm64 (device + simulator) | Universal library for iOS |
-| iOS      | `include-ios.zip` | - | V8 header files |
-| macOS    | `libv8_monolith-mac-arm64.zip` | arm64 | Static library for macOS Apple Silicon |
-| macOS    | `include-mac.zip` | - | V8 header files |
+| Apple    | `libv8_monolith-apple.zip` | iOS arm64 (device + simulator)<br>macOS arm64 | XCFramework with headers included for iOS and macOS |
 | Windows  | `libv8_monolith-win-x64.zip` | x64 | Static library for Windows x64 |
 | Windows  | `include-win.zip` | - | V8 header files |
 
@@ -50,17 +48,44 @@ The repository contains GN build configuration files for each platform:
 - [args.android.arm.gn](args.android.arm.gn)
 - [args.android.x64.gn](args.android.x64.gn)
 
-### iOS
-- [args.ios.arm64.gn](args.ios.arm64.gn) - Device configuration
-- [args.ios.arm64.simulator.gn](args.ios.arm64.simulator.gn) - Simulator configuration
+### Apple (iOS + macOS)
+- [args.ios.arm64.gn](args.ios.arm64.gn) - iOS device configuration
+- [args.ios.arm64.simulator.gn](args.ios.arm64.simulator.gn) - iOS simulator configuration
+- [args.mac.arm64.gn](args.mac.arm64.gn) - macOS configuration
 
-**Note**: The iOS build produces a Universal (Fat) library that contains both device and simulator architectures, making it easy to use in Xcode projects without switching libraries.
+**Note**: The Apple build produces a unified XCFramework that supports both iOS (arm64 device + arm64 simulator) and macOS (arm64 Apple Silicon). XCFramework is Apple's modern solution for distributing binary frameworks that contain variants for multiple platforms and architectures, making it seamless to use in Xcode projects.
 
-### macOS
-- [args.mac.arm64.gn](args.mac.arm64.gn)
+**XCFramework Structure**:
+```
+libv8_monolith.xcframework/
+├── ios-arm64/                          # iOS Device
+│   └── libv8_monolith.framework/
+│       ├── Headers/                    # V8 header files
+│       ├── libv8_monolith              # Static library
+│       └── Info.plist
+├── ios-arm64-simulator/                # iOS Simulator
+│   └── libv8_monolith.framework/
+│       ├── Headers/                    # V8 header files
+│       ├── libv8_monolith              # Static library
+│       └── Info.plist
+└── macos-arm64/                        # macOS Apple Silicon
+    └── libv8_monolith.framework/
+        ├── Headers/                    # V8 header files
+        ├── libv8_monolith              # Static library
+        └── Info.plist
+```
+
+**Usage in Xcode**:
+1. Drag `libv8_monolith.xcframework` into your Xcode project
+2. Add to "Frameworks, Libraries, and Embedded Content"
+3. Import headers: `#include <libv8_monolith/v8.h>`
+4. Xcode automatically selects the correct variant (iOS device/simulator/macOS)
 
 ### Windows
 - [args.win.x64.gn](args.win.x64.gn)
+
+### XCFramework Configuration
+- [Info.plist.template](Info.plist.template) - Template for XCFramework Info.plist (version is replaced during build)
 
 ## Features
 
