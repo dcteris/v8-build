@@ -97,6 +97,7 @@ let onBeforeBuild = function () {
                         if (lines[i].includes("use_blink")) {
                             trace("Modify gni/v8.gn:line-" + (i));
                             lines[i] = lines[i] + codes;
+                            isModify = true;
                             break;
                         }
                     }

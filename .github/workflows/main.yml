@@ -32,8 +32,8 @@ jobs:
               '**Note: Please download the build artifacts below, DO NOT use Source code**',
               '',
               '## Supported Platforms',
-              '- Android (arm64, arm)',
-              '- iOS (arm64, arm64.simulator)',
+              '- Android (arm64, arm, x64)',
+              '- iOS (Universal library: arm64 device + arm64 simulator)',
               '- macOS (arm64)',
               '- Windows (x64)',
               '',
@@ -66,7 +66,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [arm64, arm]
+        platform: [arm64, arm, x64]
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -152,10 +152,6 @@ jobs:
       JOB_NAME: ios
     needs: create-release
     runs-on: macos-26
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [arm64, arm64.simulator]
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -163,11 +159,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-      - name: build v8
-        env:
-          PLATFORM: ${{ matrix.platform }}
-          JOB_NAME: ${{ env.JOB_NAME }}
-          WORKSPACE: ${{ github.workspace }}
+      - name: Prepare v8 environment
         run: |
           echo "::group::Prepare v8 build environment"
           git clone $DEPOT_TOOLS_REPO
@@ -194,37 +186,73 @@ jobs:
           git checkout $V8_VERSION
           gclient sync
           echo "::endgroup::"
-          echo "::group::Run pre-build script"
+      - name: Build iOS arm64 (device)
+        env:
+          PLATFORM: arm64
+          JOB_NAME: ${{ env.JOB_NAME }}
+          WORKSPACE: ${{ github.workspace }}
+        run: |
+          export PATH="$GITHUB_WORKSPACE/depot_tools:${PATH}"
+          cd ${{ github.workspace }}/v8
+          echo "::group::Run pre-build script for arm64"
           node ${{ github.workspace }}/builder.js
           echo "::endgroup::"
-          echo "::group::Compile v8 static library"
-          mkdir -p out.gn/ios.${{ matrix.platform }}.release/
-          cp ${{ github.workspace }}/args.ios.${{ matrix.platform }}.gn ${{ github.workspace }}/v8/out.gn/ios.${{ matrix.platform }}.release/args.gn
-          gn gen out.gn/ios.${{ matrix.platform }}.release
-          ninja v8_monolith -C out.gn/ios.${{ matrix.platform }}.release/
-          gn args --list out.gn/ios.${{ matrix.platform }}.release > out.gn/ios.${{ matrix.platform }}.release/args.full.txt
+          echo "::group::Compile v8 static library for arm64 (device)"
+          mkdir -p out.gn/ios.arm64.release/
+          cp ${{ github.workspace }}/args.ios.arm64.gn out.gn/ios.arm64.release/args.gn
+          gn gen out.gn/ios.arm64.release
+          ninja v8_monolith -C out.gn/ios.arm64.release/
+          gn args --list out.gn/ios.arm64.release > out.gn/ios.arm64.release/args.full.txt
+          echo "::endgroup::"
+      - name: Build iOS arm64 (simulator)
+        env:
+          PLATFORM: arm64.simulator
+          JOB_NAME: ${{ env.JOB_NAME }}
+          WORKSPACE: ${{ github.workspace }}
+        run: |
+          export PATH="$GITHUB_WORKSPACE/depot_tools:${PATH}"
+          cd ${{ github.workspace }}/v8
+          echo "::group::Run pre-build script for arm64.simulator"
+          node ${{ github.workspace }}/builder.js
+          echo "::endgroup::"
+          echo "::group::Compile v8 static library for arm64 (simulator)"
+          mkdir -p out.gn/ios.arm64.simulator.release/
+          cp ${{ github.workspace }}/args.ios.arm64.simulator.gn out.gn/ios.arm64.simulator.release/args.gn
+          gn gen out.gn/ios.arm64.simulator.release
+          ninja v8_monolith -C out.gn/ios.arm64.simulator.release/
+          gn args --list out.gn/ios.arm64.simulator.release > out.gn/ios.arm64.simulator.release/args.full.txt
+          echo "::endgroup::"
+      - name: Create universal library
+        run: |
+          cd ${{ github.workspace }}/v8
+          echo "::group::Create universal library with lipo"
+          lipo -create \
+            out.gn/ios.arm64.release/obj/libv8_monolith.a \
+            out.gn/ios.arm64.simulator.release/obj/libv8_monolith.a \
+            -output out.gn/libv8_monolith_universal.a
+          
+          # Verify the universal library
+          lipo -info out.gn/libv8_monolith_universal.a
+          
           echo "::endgroup::"
           echo "::group::Compress artifacts"
-          zip -j ../libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}.zip \
-            out.gn/ios.${{ matrix.platform }}.release/obj/libv8_monolith.a \
-            out.gn/ios.${{ matrix.platform }}.release/args.gn \
-            out.gn/ios.${{ matrix.platform }}.release/args.full.txt
-          if [ "${{ matrix.platform }}" = "arm64" ]; then
-            zip -r ../include-${{ env.JOB_NAME }}.zip include
-          fi
-          ls -a
+          zip -j ../libv8_monolith-${{ env.JOB_NAME }}-universal.zip \
+            out.gn/libv8_monolith_universal.a \
+            out.gn/ios.arm64.release/args.gn \
+            out.gn/ios.arm64.release/args.full.txt
+          zip -r ../include-${{ env.JOB_NAME }}.zip include
+          ls -lh ../libv8_monolith-${{ env.JOB_NAME }}-universal.zip
           echo "::endgroup::"
-      - name: Upload static library
+      - name: Upload universal library
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ github.workspace }}/libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}.zip
-          asset_name: libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}.zip
+          asset_path: ${{ github.workspace }}/libv8_monolith-${{ env.JOB_NAME }}-universal.zip
+          asset_name: libv8_monolith-${{ env.JOB_NAME }}-universal.zip
           asset_content_type: application/zip
       - name: Upload include
-        if: matrix.platform == 'arm64'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}

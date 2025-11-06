@@ -10,8 +10,8 @@ English | [简体中文](README.ZH.md)
 
 ## Supported Platforms
 
-- **Android** (arm64, arm)
-- **iOS** (arm64, arm64.simulator)
+- **Android** (arm64, arm, x64)
+- **iOS** (Universal library for arm64 device + arm64 simulator)
 - **macOS** (arm64)
 - **Windows** (x64)
 
@@ -26,6 +26,21 @@ Each release includes zip packages with:
 - **args.gn** - Build configuration used for compilation
 - **args.full.txt** - Complete GN arguments list with all default values and descriptions
 
+## Build Artifacts
+
+| Platform | Artifact File | Architectures | Description |
+|----------|--------------|---------------|-------------|
+| Android  | `libv8_monolith-android-arm64.zip` | arm64 | Static library for Android arm64 |
+| Android  | `libv8_monolith-android-arm.zip` | arm | Static library for Android arm |
+| Android  | `libv8_monolith-android-x64.zip` | x64 | Static library for Android x64 (emulator) |
+| Android  | `include-android.zip` | - | V8 header files (from arm64 build) |
+| iOS      | `libv8_monolith-ios-universal.zip` | arm64 (device + simulator) | Universal library for iOS |
+| iOS      | `include-ios.zip` | - | V8 header files |
+| macOS    | `libv8_monolith-mac-arm64.zip` | arm64 | Static library for macOS Apple Silicon |
+| macOS    | `include-mac.zip` | - | V8 header files |
+| Windows  | `libv8_monolith-win-x64.zip` | x64 | Static library for Windows x64 |
+| Windows  | `include-win.zip` | - | V8 header files |
+
 ## Build Configuration Files
 
 The repository contains GN build configuration files for each platform:
@@ -33,10 +48,13 @@ The repository contains GN build configuration files for each platform:
 ### Android
 - [args.android.arm64.gn](args.android.arm64.gn)
 - [args.android.arm.gn](args.android.arm.gn)
+- [args.android.x64.gn](args.android.x64.gn)
 
 ### iOS
-- [args.ios.arm64.gn](args.ios.arm64.gn) - iOS device
-- [args.ios.arm64.simulator.gn](args.ios.arm64.simulator.gn) - iOS simulator
+- [args.ios.arm64.gn](args.ios.arm64.gn) - Device configuration
+- [args.ios.arm64.simulator.gn](args.ios.arm64.simulator.gn) - Simulator configuration
+
+**Note**: The iOS build produces a Universal (Fat) library that contains both device and simulator architectures, making it easy to use in Xcode projects without switching libraries.
 
 ### macOS
 - [args.mac.arm64.gn](args.mac.arm64.gn)
@@ -94,6 +112,10 @@ To update the V8 version or modify build configurations:
 2. Modify platform-specific `args.*.gn` files as needed
 3. Update [builder.js](builder.js) for platform-specific build logic
 4. Create a new git tag to trigger the build workflow
+
+## Acknowledgments
+
+This project is inspired by and references the work from [just-js/v8](https://github.com/just-js/v8).
 
 ## License
 

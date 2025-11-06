@@ -10,8 +10,8 @@
 
 ## 支持平台
 
-- **Android** (arm64, arm)
-- **iOS** (arm64, arm64.simulator)
+- **Android** (arm64, arm, x64)
+- **iOS** (Universal库，包含arm64真机 + arm64模拟器)
 - **macOS** (arm64)
 - **Windows** (x64)
 
@@ -26,6 +26,21 @@
 - **args.gn** - 编译时使用的构建配置
 - **args.full.txt** - 完整的 GN 参数列表，包含所有默认值和说明
 
+## 构建产物
+
+| 平台 | 产物文件 | 架构 | 说明 |
+|------|---------|------|------|
+| Android  | `libv8_monolith-android-arm64.zip` | arm64 | Android arm64 静态库 |
+| Android  | `libv8_monolith-android-arm.zip` | arm | Android arm 静态库 |
+| Android  | `libv8_monolith-android-x64.zip` | x64 | Android x64 静态库（模拟器） |
+| Android  | `include-android.zip` | - | V8 头文件（来自 arm64 构建） |
+| iOS      | `libv8_monolith-ios-universal.zip` | arm64（真机+模拟器） | iOS Universal 静态库 |
+| iOS      | `include-ios.zip` | - | V8 头文件 |
+| macOS    | `libv8_monolith-mac-arm64.zip` | arm64 | macOS Apple Silicon 静态库 |
+| macOS    | `include-mac.zip` | - | V8 头文件 |
+| Windows  | `libv8_monolith-win-x64.zip` | x64 | Windows x64 静态库 |
+| Windows  | `include-win.zip` | - | V8 头文件 |
+
 ## 构建配置文件
 
 本仓库包含各平台的 GN 构建配置文件：
@@ -33,10 +48,13 @@
 ### Android
 - [args.android.arm64.gn](args.android.arm64.gn)
 - [args.android.arm.gn](args.android.arm.gn)
+- [args.android.x64.gn](args.android.x64.gn)
 
 ### iOS
-- [args.ios.arm64.gn](args.ios.arm64.gn) - iOS 真机设备
-- [args.ios.arm64.simulator.gn](args.ios.arm64.simulator.gn) - iOS 模拟器
+- [args.ios.arm64.gn](args.ios.arm64.gn) - 真机设备配置
+- [args.ios.arm64.simulator.gn](args.ios.arm64.simulator.gn) - 模拟器配置
+
+**注意**：iOS构建会生成一个Universal（胖二进制）库，同时包含真机和模拟器架构，可以直接在Xcode项目中使用，无需切换库文件。
 
 ### macOS
 - [args.mac.arm64.gn](args.mac.arm64.gn)
@@ -94,6 +112,10 @@
 2. 根据需要修改平台特定的 `args.*.gn` 文件
 3. 更新 [builder.js](builder.js) 中的平台特定构建逻辑
 4. 创建新的 git 标签以触发构建工作流
+
+## 致谢
+
+本项目受到 [just-js/v8](https://github.com/just-js/v8) 的启发并参考了其相关工作。
 
 ## 许可证
 
