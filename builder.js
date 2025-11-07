@@ -17,9 +17,10 @@ const trace = function (...args) {
  * @param {*} argsPath args.gn文件路径
  * @returns 对象
  */
-let parseGNArgs = function (argsPath) {
+let parseGNArgs = function (argsPath, isToArray = false) {
     const content = fs.readFileSync(argsPath, "utf8");
     const lines = content.split("\n");
+    let result = isToArray ? [] : {};
     const args = {};
     for (let line of lines) {
         const trimmedLine = line.trim();
@@ -37,9 +38,12 @@ const v8Version = process.env.V8_VERSION;
 const platform = process.env.PLATFORM; // arm64|arm|x64
 const jobName = process.env.JOB_NAME;  // android|ios|mac|win
 const workspace = process.env.WORKSPACE;
+const NDK_ROOT = process.env.NDK_ROOT;
+
 trace("v8Version=" + v8Version);
 trace("platform=" + platform);
 trace("jobName=" + jobName);
+trace("NDK_ROOT=" + NDK_ROOT);
 trace("workspace=" + workspace);
 
 const v8SourcePath = path.join(workspace, "v8");
@@ -48,18 +52,18 @@ const v8SourcePath = path.join(workspace, "v8");
  * 在ninja构建前执行，修改v8源码
  */
 let onBeforeBuild = function () {
+    const argsPath = path.join(workspace, `args.${jobName}.${platform}.gn`);
+    const gnContent = fs.readFileSync(argsPath, "utf8");
     switch (jobName) {
         case "android": {
-            // DO NOTHING
+            let newGnContent = gnContent + `android_ndk_root="${NDK_ROOT}"`;
+            fs.writeFileSync(argsPath, newGnContent);
             break;
         }
         case "ios": {
-            // parse args.ios.${{ matrix.platform }}.gn
-            const argsPath = path.join(workspace, `args.ios.${platform}.gn`);
-            const args = parseGNArgs(argsPath);
-            trace(JSON.stringify(args, null, 2));
-            if (args["v8_enable_webassembly"] === "true") {
+            if (gnContent.indexOf(`v8_enable_drumbrake=true`) >= 0) {
                 {
+                    trace("v8_enable_drumbrake = true");
                     //  BUILD.gn
                     let gnPath = path.join(v8SourcePath, "BUILD.gn");
                     let content = fs.readFileSync(gnPath, "utf8");

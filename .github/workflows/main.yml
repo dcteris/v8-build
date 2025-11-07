@@ -85,6 +85,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
+          
       - name: Install NDK r28b
         uses: nttld/setup-ndk@v1
         id: setup-ndk
@@ -92,6 +93,7 @@ jobs:
           ndk-version: r28b
           add-to-path: false
           local-cache: true
+
       - name: compile v8
         env:
           NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-root }}
