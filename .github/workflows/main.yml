@@ -242,6 +242,11 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/depot_tools:${PATH}"
           gclient
           fetch v8 > /dev/null
+          cd ${{ github.workspace }}/v8
+          
+          echo "Checkout v8 version: $V8_VERSION"
+          git checkout $V8_VERSION
+          
           cat > ${{ github.workspace }}/.gclient << 'EOF'
           solutions = [
             {
@@ -258,9 +263,9 @@ jobs:
           ]
           target_os = ['ios']
           EOF
-          cd ${{ github.workspace }}/v8
-          git checkout $V8_VERSION
-          gclient sync
+          
+          echo "Running gclient sync with dependencies..."
+          gclient sync -D --force --reset
           echo "::endgroup::"
       - name: Build iOS arm64 (device)
         env:
@@ -371,6 +376,11 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/depot_tools:${PATH}"
           gclient
           fetch v8 > /dev/null
+          cd ${{ github.workspace }}/v8
+          
+          echo "Checkout v8 version: $V8_VERSION"
+          git checkout $V8_VERSION
+          
           cat > ${{ github.workspace }}/.gclient << 'EOF'
           solutions = [
             {
@@ -386,9 +396,9 @@ jobs:
             },
           ]
           EOF
-          cd ${{ github.workspace }}/v8
-          git checkout $V8_VERSION
-          gclient sync
+          
+          echo "Running gclient sync with dependencies..."
+          gclient sync -D --force --reset
           echo "::endgroup::"
       - name: Build macOS arm64
         env:
@@ -481,7 +491,12 @@ jobs:
           git clone $DEPOT_TOOLS_REPO > NUL
           gclient
           fetch v8
-          cat > .gclient << 'EOF'
+          cd v8
+          
+          echo "Checkout v8 version: %V8_VERSION%"
+          git checkout $V8_VERSION
+          
+          cat > ../.gclient << 'EOF'
           solutions = [
             {
               "name": "v8",
@@ -496,9 +511,9 @@ jobs:
             },
           ]
           EOF
-          cd v8
-          git checkout $V8_VERSION
-          gclient sync
+          
+          echo "Running gclient sync with dependencies..."
+          gclient sync -D --force --reset
           echo "::endgroup::"
       - name: run pre-build script
         env:
