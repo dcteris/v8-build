@@ -146,6 +146,11 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/depot_tools:${PATH}"
           gclient
           fetch v8 > /dev/null
+          cd ${{ github.workspace }}/v8
+          
+          echo "Checkout v8 version: $V8_VERSION"
+          git checkout $V8_VERSION
+          
           cat > ${{ github.workspace }}/.gclient << 'EOF'
           solutions = [
             {
@@ -162,7 +167,6 @@ jobs:
           ]
           target_os = ['android']
           EOF
-          cd ${{ github.workspace }}/v8
 
           echo "Install sysroot"
           if [[ "${{ matrix.platform }}" == "arm64" || "${{ matrix.platform }}" == "x64" ]];then
@@ -171,11 +175,9 @@ jobs:
             INSTALL_SYSROOT_ARCH="i386"
           fi
           python3 ./build/linux/sysroot_scripts/install-sysroot.py --arch=${INSTALL_SYSROOT_ARCH}
-          
-          echo "Checkout v8"
-          git checkout $V8_VERSION
 
-          gclient sync
+          echo "Running gclient sync with dependencies..."
+          gclient sync -D --force --reset
           ./build/install-build-deps.sh --no-prompt --no-chromeos-fonts || true
           echo "::endgroup::"
           echo "::group::Run pre-build script"
