@@ -49,10 +49,10 @@ jobs:
               '- Includes: XCFramework with headers + args.gn + args.full.txt',
               '',
               '### Windows (x64)',
-              '- Static library: `libv8_monolith-win-x64-release.zip` (Release)',
-              '- Static library: `libv8_monolith-win-x64-debug.zip` (Debug)',
+              '- Shared library (DLL): `libv8_dll-win-x64-release.zip` (Release)',
+              '- Shared library (DLL): `libv8_dll-win-x64-debug.zip` (Debug)',
               '- Header files: `include-win.zip`',
-              '- Package includes: static library + args.gn + args.full.txt'
+              '- Package includes: .dll, .dll.lib, .pdb files + args.gn'
             ].join('\n');
             
             const release = await github.rest.repos.createRelease({
@@ -508,18 +508,24 @@ jobs:
           Copy-Item "args.win.${{ matrix.platform }}.${{ matrix.build_type }}.gn" -Destination "v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/args.gn" -force
           Set-Location -Path v8
           gn gen out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}
-          ninja v8_monolith -C out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/
+          ninja v8 -C out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/
           gn args --list out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }} > out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/args.full.txt
           echo "::endgroup::"
       - name: compress artifacts
         shell: pwsh
         run: |
           echo "::group::Compress artifacts"
-          Compress-Archive -Path @(
-            "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/obj/v8_monolith.lib",
-            "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/args.gn",
-            "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/args.full.txt"
-          ) -Destination ${{ github.workspace }}/libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}-${{ matrix.build_type }}.zip
+          $buildDir = "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}"
+          $files = Get-ChildItem -Path $buildDir -Include "*.dll", "*.dll.lib", "*.pdb" -Recurse
+          $includeFiles = @()
+          foreach ($file in $files) {
+              $includeFiles += $file.FullName
+          }
+          $includeFiles += "$buildDir/args.gn"
+          $includeFiles += "$buildDir/args.full.txt"
+          
+          Compress-Archive -Path $includeFiles -Destination ${{ github.workspace }}/libv8_dll-${{ env.JOB_NAME }}-${{ matrix.platform }}-${{ matrix.build_type }}.zip
+          
           if ("${{ matrix.platform }}" -eq "x64" -and "${{ matrix.build_type }}" -eq "release") {
             Compress-Archive -Path ${{ github.workspace }}/v8/include -Destination ${{ github.workspace }}/include-${{ env.JOB_NAME }}.zip
           }
@@ -530,8 +536,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ github.workspace }}/libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}-${{ matrix.build_type }}.zip
-          asset_name: libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}-${{ matrix.build_type }}.zip
+          asset_path: ${{ github.workspace }}/libv8_dll-${{ env.JOB_NAME }}-${{ matrix.platform }}-${{ matrix.build_type }}.zip
+          asset_name: libv8_dll-${{ env.JOB_NAME }}-${{ matrix.platform }}-${{ matrix.build_type }}.zip
           asset_content_type: application/zip
       - name: Upload include
         if: matrix.platform == 'x64' && matrix.build_type == 'release'
