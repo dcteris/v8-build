@@ -65,7 +65,9 @@ clang_base_path="${NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64"
 `use_glib=false
 `;
             fs.writeFileSync(argsPath, newGnContent);
-            trace("argsPath: " + newGnContent);
+            trace("**********************************************")
+            trace(newGnContent);
+            trace("**********************************************")
             break;
         }
         case "ios": {

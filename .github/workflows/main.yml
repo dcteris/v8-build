@@ -49,7 +49,8 @@ jobs:
               '- Includes: XCFramework with headers + args.gn + args.full.txt',
               '',
               '### Windows (x64)',
-              '- Static library: `libv8_monolith-win-x64.zip`',
+              '- Static library: `libv8_monolith-win-x64-release.zip` (Release)',
+              '- Static library: `libv8_monolith-win-x64-debug.zip` (Debug)',
               '- Header files: `include-win.zip`',
               '- Package includes: static library + args.gn + args.full.txt'
             ].join('\n');
@@ -69,6 +70,7 @@ jobs:
             return release.data;
 
   build-android:
+    if: false
     name: android
     env:
       JOB_NAME: android
@@ -113,34 +115,7 @@ jobs:
           
           echo "NDK installed successfully at: ${NDK_ROOT}"
           ls -la "${NDK_ROOT}"
-          
-          echo "::group::Install sysroot"
-          if [[ -d "/usr/lib/i386-linux-gnu" ]]; then
-            echo "/usr/lib/i386-linux-gnu exists."
-            ls -la /usr/lib/i386-linux-gnu/libatomic.so.1*
-          else
-            echo "/usr/lib/i386-linux-gnu doesn't not exist."
-          fi
-
-          sudo dpkg --add-architecture i386
-          sudo apt-get update
-          sudo apt-get install -y libc6:i386 libstdc++6:i386 libatomic1:i386
-
-          if [[ -d "/usr/lib/i386-linux-gnu" ]]; then
-            echo "/usr/lib/i386-linux-gnu exists."
-            ls -la /usr/lib/i386-linux-gnu/
-            ls -la /usr/lib/i386-linux-gnu/libatomic.so.1*
-          else
-            echo "/usr/lib/i386-linux-gnu doesn't not exist."
-          fi
-
-          if [[ -d "/usr/lib/x86_64-linux-gnu" ]]; then
-            echo "/usr/lib/x86_64-linux-gnu exists."
-            ls -la /usr/lib/x86_64-linux-gnu/libatomic.so.1*
-          else
-            echo "/usr/lib/x86_64-linux-gnu doesn't not exist."
-          fi
-
+  
           echo "::group::Prepare v8 build environment"
           git clone $DEPOT_TOOLS_REPO > /dev/null
           export PATH="$GITHUB_WORKSPACE/depot_tools:${PATH}"
@@ -462,7 +437,6 @@ jobs:
           asset_content_type: application/zip
 
   build-win:
-    if: false
     name: windows
     env:
       JOB_NAME: win
@@ -472,6 +446,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: [x64]
+        build_type: [release, debug]
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -520,6 +495,7 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
           JOB_NAME: ${{ env.JOB_NAME }}
           WORKSPACE: ${{ github.workspace }}
+          BUILD_TYPE: ${{ matrix.build_type }}
         run: |
           echo "::group::Run pre-build script"
           node builder.js
@@ -528,23 +504,23 @@ jobs:
         shell: pwsh
         run: |
           echo "::group::Compile v8 static library"
-          New-Item -ItemType directory -Path v8/out.gn/win.${{ matrix.platform }}.release/
-          Copy-Item "args.win.${{ matrix.platform }}.gn" -Destination "v8/out.gn/win.${{ matrix.platform }}.release/args.gn" -force
+          New-Item -ItemType directory -Path v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/
+          Copy-Item "args.win.${{ matrix.platform }}.${{ matrix.build_type }}.gn" -Destination "v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/args.gn" -force
           Set-Location -Path v8
-          gn gen out.gn/win.${{ matrix.platform }}.release
-          ninja v8_monolith -C out.gn/win.${{ matrix.platform }}.release/
-          gn args --list out.gn/win.${{ matrix.platform }}.release > out.gn/win.${{ matrix.platform }}.release/args.full.txt
+          gn gen out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}
+          ninja v8_monolith -C out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/
+          gn args --list out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }} > out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/args.full.txt
           echo "::endgroup::"
       - name: compress artifacts
         shell: pwsh
         run: |
           echo "::group::Compress artifacts"
           Compress-Archive -Path @(
-            "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.release/obj/v8_monolith.lib",
-            "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.release/args.gn",
-            "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.release/args.full.txt"
-          ) -Destination ${{ github.workspace }}/libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}.zip
-          if ("${{ matrix.platform }}" -eq "x64") {
+            "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/obj/v8_monolith.lib",
+            "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/args.gn",
+            "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/args.full.txt"
+          ) -Destination ${{ github.workspace }}/libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}-${{ matrix.build_type }}.zip
+          if ("${{ matrix.platform }}" -eq "x64" -and "${{ matrix.build_type }}" -eq "release") {
             Compress-Archive -Path ${{ github.workspace }}/v8/include -Destination ${{ github.workspace }}/include-${{ env.JOB_NAME }}.zip
           }
           echo "::endgroup::"
@@ -554,11 +530,11 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ github.workspace }}/libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}.zip
-          asset_name: libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}.zip
+          asset_path: ${{ github.workspace }}/libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}-${{ matrix.build_type }}.zip
+          asset_name: libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}-${{ matrix.build_type }}.zip
           asset_content_type: application/zip
       - name: Upload include
-        if: matrix.platform == 'x64'
+        if: matrix.platform == 'x64' && matrix.build_type == 'release'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
