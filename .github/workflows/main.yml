@@ -546,7 +546,7 @@ jobs:
 
   publish-release:
     name: publish release
-    needs: [build-android, build-ios, build-mac, build-win]
+    needs: [build-win]
     runs-on: ubuntu-latest
     steps:
     - name: Publish Release
