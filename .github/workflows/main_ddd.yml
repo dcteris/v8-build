@@ -146,7 +146,7 @@ jobs:
         shell: pwsh
         run: |
           echo "::group::Compress artifacts"
-          7z a ${{ github.workspace }}/libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}-${{ matrix.build_type }}.7z @(
+          7z a -tzip ${{ github.workspace }}/libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}-${{ matrix.build_type }}.zip @(
             "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/obj/v8_monolith.lib",
             "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/args.gn",
             "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/args.full.txt"
