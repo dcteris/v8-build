@@ -146,11 +146,11 @@ jobs:
         shell: pwsh
         run: |
           echo "::group::Compress artifacts"
-          Compress-Archive -Path @(
+          7z a ${{ github.workspace }}/libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}-${{ matrix.build_type }}.7z @(
             "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/obj/v8_monolith.lib",
             "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/args.gn",
             "${{ github.workspace }}/v8/out.gn/win.${{ matrix.platform }}.${{ matrix.build_type }}/args.full.txt"
-          ) -Destination ${{ github.workspace }}/libv8_monolith-${{ env.JOB_NAME }}-${{ matrix.platform }}-${{ matrix.build_type }}.zip
+          )
           if ("${{ matrix.platform }}" -eq "x64" -and "${{ matrix.build_type }}" -eq "release") {
             Compress-Archive -Path ${{ github.workspace }}/v8/include -Destination ${{ github.workspace }}/include-${{ env.JOB_NAME }}.zip
           }
