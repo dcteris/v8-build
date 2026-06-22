@@ -72,7 +72,7 @@ jobs:
     env:
       JOB_NAME: win
     needs: create-release
-    runs-on: windows-2022
+    runs-on: windows-2026
     strategy:
       fail-fast: false
       matrix:
